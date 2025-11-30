@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "836583123424",
+    "project_id": "bolfoodapp",
+    "storage_bucket": "bolfoodapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:836583123424:android:862d0c6429855cc8aea385",
+        "android_client_info": {
+          "package_name": "com.edmundozenteno.bol_food_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAUNdzgEvZFyjSKxlf-B21vfCD5w_l6y5w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
