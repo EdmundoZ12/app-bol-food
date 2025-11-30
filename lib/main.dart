@@ -1,17 +1,27 @@
-import 'package:bol_food_app/config/config.dart';
-import 'package:bol_food_app/config/router/app_router.dart';
-import 'package:bol_food_app/notifications/bloc/notifications_bloc.dart';
-import 'package:bol_food_app/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_riverpod/legacy.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:provider/provider.dart';
+
+import 'config/config.dart';
+import 'config/router/app_router.dart';
+import 'notifications/bloc/notifications_bloc.dart';
+import 'providers/auth_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Cargar variables de entorno
+  await dotenv.load(fileName: ".env");
+
   await NotificationsBloc.initializeFCM();
+
   runApp(
-    MultiBlocProvider(
-      providers: [BlocProvider(create: (_) => NotificationsBloc())],
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        BlocProvider(create: (_) => NotificationsBloc()),
+      ],
       child: const MainApp(),
     ),
   );
@@ -22,15 +32,10 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
-      providers: [
-        ChangeNotifierProvider(create:(_)=>AuthProvider())
-      ],
-      child: MaterialApp.router(
-        routerConfig: appRouter,
-        theme: AppTheme().getTheme(),
-        debugShowCheckedModeBanner: false,
-      ),
+    return MaterialApp.router(
+      routerConfig: appRouter,
+      theme: AppTheme().getTheme(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }

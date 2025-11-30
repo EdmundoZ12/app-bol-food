@@ -1,158 +1,183 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-import '../models/user.dart';
+import '../models/driver.dart';
 import '../services/auth_service.dart';
+
+enum AuthStatus { checking, authenticated, notAuthenticated }
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
-  User? _user;
+  AuthStatus _authStatus = AuthStatus.checking;
+  Driver? _driver;
   String? _token;
   bool _isLoading = false;
+  String? _errorMessage;
 
-  User? get user => _user;
+  // Getters
+  AuthStatus get authStatus => _authStatus;
+  Driver? get driver => _driver;
   String? get token => _token;
   bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+  bool get isAuthenticated => _authStatus == AuthStatus.authenticated;
 
+  AuthProvider() {
+    checkAuth();
+  }
+
+  /// Registrar nuevo driver
   Future<bool> register({
-    required String nombre,
-    required String apellido,
+    required String name,
+    required String lastname,
     required String email,
     required String password,
-    required String telefono,
+    required String phone,
+    required String vehicle,
   }) async {
     try {
       _isLoading = true;
+      _errorMessage = null;
       notifyListeners();
 
-      print('📱 AuthProvider: Iniciando registro de usuario');
+      print('📱 AuthProvider: Iniciando registro...');
 
-      _user = await _authService.register(
-        nombre: nombre,
-        apellido: apellido,
+      _driver = await _authService.register(
+        name: name,
+        lastname: lastname,
         email: email,
         password: password,
-        telefono: telefono,
+        phone: phone,
+        vehicle: vehicle,
       );
 
-      print('📱 AuthProvider: Usuario registrado con éxito');
-      print('📱 Usuario: ${_user?.nombre} ${_user?.apellido}');
-      print('📱 Email: ${_user?.email}');
-      print('📱 ID: ${_user?.id}');
-
-      // Guardar datos básicos del usuario en el almacenamiento seguro
-      await _storage.write(key: 'user_id', value: _user?.id.toString());
-      await _storage.write(key: 'user_email', value: _user?.email);
-      await _storage.write(key: 'user_nombre', value: _user?.nombre);
-      await _storage.write(key: 'user_apellido', value: _user?.apellido);
-
-      print(
-          '📱 AuthProvider: Datos del usuario guardados en almacenamiento seguro');
+      print('✅ Driver registrado: ${_driver?.fullName}');
 
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
-      print('❌ Error en AuthProvider.register: $e');
+      print('❌ Error en registro: $e');
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
       _isLoading = false;
       notifyListeners();
-      rethrow;
+      return false;
     }
   }
 
-  Future<bool> login({
-    required String email,
-    required String password,
-  }) async {
+  /// Login del driver
+  Future<bool> login({required String email, required String password}) async {
     try {
       _isLoading = true;
+      _errorMessage = null;
       notifyListeners();
+
+      print('📱 AuthProvider: Iniciando login...');
 
       final response = await _authService.login(
         email: email,
         password: password,
       );
 
-      _user = response['user'] as User;
+      _driver = response['driver'] as Driver;
       _token = response['token'] as String;
 
-      // Guardar datos en el almacenamiento seguro
-      await _storage.write(key: 'token', value: _token);
-      await _storage.write(key: 'user_id', value: _user?.id.toString());
-      await _storage.write(key: 'user_email', value: _user?.email);
-      await _storage.write(key: 'user_nombre', value: _user?.nombre);
-      await _storage.write(key: 'user_apellido', value: _user?.apellido);
+      // Guardar en almacenamiento seguro
+      await _saveToStorage();
 
-      print('✅ Usuario logueado exitosamente:');
-      print('Nombre: ${_user?.nombre} ${_user?.apellido}');
-      print('Email: ${_user?.email}');
+      _authStatus = AuthStatus.authenticated;
+
+      print('✅ Login exitoso: ${_driver?.fullName}');
 
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
-      print('❌ Error en AuthProvider login: $e');
+      print('❌ Error en login: $e');
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      _authStatus = AuthStatus.notAuthenticated;
       _isLoading = false;
       notifyListeners();
-      rethrow;
+      return false;
     }
   }
 
+  /// Cerrar sesión
   Future<void> logout() async {
     try {
-      // Obtener el email antes de borrar todo
-      final email = _user?.email;
-      if (email != null) {
-        // Eliminar token del dispositivo en el servidor
-        await _authService.logout(email);
-      }
-      print("SE ELIMINO EL TOKEN");
+      print('📱 AuthProvider: Cerrando sesión...');
 
-      // Limpiar almacenamiento local
-      await _storage.deleteAll();
-      _user = null;
+      if (_token != null) {
+        await _authService.logout(_token!);
+      }
+
+      await _clearStorage();
+
+      _driver = null;
       _token = null;
+      _authStatus = AuthStatus.notAuthenticated;
+
+      print('✅ Sesión cerrada');
       notifyListeners();
     } catch (e) {
       print('❌ Error en logout: $e');
-      rethrow;
+      // Limpiar de todos modos
+      await _clearStorage();
+      _driver = null;
+      _token = null;
+      _authStatus = AuthStatus.notAuthenticated;
+      notifyListeners();
     }
   }
 
-  Future<bool> checkAuth() async {
+  /// Verificar autenticación al iniciar la app
+  Future<void> checkAuth() async {
     try {
+      print('📱 AuthProvider: Verificando autenticación...');
+
       final token = await _storage.read(key: 'token');
-      if (token != null) {
-        final id = int.parse(await _storage.read(key: 'user_id') ?? '0');
-        final email = await _storage.read(key: 'user_email') ?? '';
-        final nombre = await _storage.read(key: 'user_nombre') ?? '';
-        final apellido = await _storage.read(key: 'user_apellido') ?? '';
 
-        _user = User(
-          id: id,
-          email: email,
-          nombre: nombre,
-          apellido: apellido,
-        );
-        _token = token;
-
-        // // Actualizar token del dispositivo al restablecer la sesión
-        // if (email.isNotEmpty) {
-        //   _authService.saveTokenDevice(
-        //     email: email,
-        //     tokenDevice: await _authService._getFCMToken(),
-        //   );
-        // }
-
+      if (token == null) {
+        print('📱 No hay token guardado');
+        _authStatus = AuthStatus.notAuthenticated;
         notifyListeners();
-        return true;
+        return;
       }
-      return false;
+
+      // Intentar obtener el perfil con el token guardado
+      _token = token;
+      _driver = await _authService.getProfile(token);
+      _authStatus = AuthStatus.authenticated;
+
+      print('✅ Sesión restaurada: ${_driver?.fullName}');
+      notifyListeners();
     } catch (e) {
-      print('❌ Error en checkAuth: $e');
-      return false;
+      print('❌ Token inválido o expirado: $e');
+      await _clearStorage();
+      _authStatus = AuthStatus.notAuthenticated;
+      notifyListeners();
     }
+  }
+
+  /// Guardar datos en almacenamiento seguro
+  Future<void> _saveToStorage() async {
+    await _storage.write(key: 'token', value: _token);
+    await _storage.write(key: 'driver_id', value: _driver?.id);
+    await _storage.write(key: 'driver_email', value: _driver?.email);
+    await _storage.write(key: 'driver_name', value: _driver?.name);
+    await _storage.write(key: 'driver_lastname', value: _driver?.lastname);
+  }
+
+  /// Limpiar almacenamiento
+  Future<void> _clearStorage() async {
+    await _storage.deleteAll();
+  }
+
+  /// Limpiar mensaje de error
+  void clearError() {
+    _errorMessage = null;
+    notifyListeners();
   }
 }
