@@ -8,15 +8,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
-// import '../../firebase_options.dart';
-
 part 'notifications_event.dart';
 
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // If you're going to use other Firebase services in the background, such as Firestore,
-  // make sure you call `initializeApp` before using other Firebase services.
   await Firebase.initializeApp();
-
   print("Handling a background message: ${message.messageId}");
 }
 
@@ -27,10 +22,7 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
     on<NotificationStatusChanged>(_notificationStatusChanged);
     on<NotificationReceived>(_onPushMessageReceived);
 
-    // Verificar estado de las notificaciones
     _initialStatusCheck();
-
-    // Listener para notificaciones en Foreground
     _onForegroundMessage();
   }
 
@@ -38,6 +30,9 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+
+    // Registrar handler para background
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   }
 
   void _notificationStatusChanged(
@@ -65,16 +60,20 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
   }
 
   void _getFCMToken() async {
-    if (state.status != AuthorizationStatus.authorized) return;
+    if (state.status != AuthorizationStatus.authorized) {
+      print('⚠️ Notificaciones no autorizadas');
+      return;
+    }
 
     try {
       final token = await messaging.getToken();
-      tokenDevice = token.toString();
-      print("FCM Token obtenido: $token");
+      if (token != null) {
+        tokenDevice = token;
+        print("✅ FCM Token obtenido: $token");
+      }
     } catch (e) {
       print("❌ Error al obtener el token FCM: $e");
-      // Asignar un valor predeterminado o manejo alternativo
-      tokenDevice = "no-token-available";
+      tokenDevice = "";
     }
   }
 
@@ -111,6 +110,7 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
       sound: true,
     );
 
+    print('🔔 Permiso de notificaciones: ${settings.authorizationStatus}');
     add(NotificationStatusChanged(settings.authorizationStatus));
   }
 
