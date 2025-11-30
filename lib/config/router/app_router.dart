@@ -26,5 +26,7 @@ final appRouter = GoRouter(
 
     // Home
     GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
+    GoRoute(path: '/history', builder: (context, state) => const HistoryScreen()),
+    GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen()),
   ],
 );

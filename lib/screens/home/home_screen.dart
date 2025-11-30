@@ -2,12 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 
 import '../../config/theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/custom_navbar.dart';
+import 'widgets/stat_card.dart';
+import 'widgets/status_card.dart';
+import 'widgets/waiting_orders_card.dart';
+import 'widgets/offline_card.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int _currentIndex = 0;
+  bool _isOnline = true;
 
   @override
   Widget build(BuildContext context) {
@@ -15,18 +29,49 @@ class HomeScreen extends StatelessWidget {
     final driver = authProvider.driver;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8F7F7),
       appBar: AppBar(
-        backgroundColor: primaryBlack,
-        title: Text(
-          'Bol Food Driver',
-          style: GoogleFonts.montserratAlternates(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+        backgroundColor: Colors.black,
+        elevation: 0,
+        title: Row(
+          children: [
+            Image.asset(
+              'assets/images/logo.jpg',
+              height: 40,
+              errorBuilder: (context, error, stackTrace) {
+                return const Icon(Icons.delivery_dining, color: primaryYellow, size: 28);
+              },
+            ),
+            const SizedBox(width: 8),
+            RichText(
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'Bol',
+                    style: GoogleFonts.montserratAlternates(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
+                  ),
+                  TextSpan(
+                    text: 'Food',
+                    style: GoogleFonts.montserratAlternates(
+                      color: primaryYellow,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        centerTitle: true,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications, color: Colors.white),
+            onPressed: () {},
+          ),
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: () async {
@@ -38,199 +83,141 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Avatar
-              CircleAvatar(
-                radius: 50,
-                backgroundColor: primaryYellow,
-                child: Text(
-                  driver?.name.substring(0, 1).toUpperCase() ?? 'D',
-                  style: GoogleFonts.montserratAlternates(
-                    fontSize: 40,
-                    fontWeight: FontWeight.bold,
-                    color: primaryBlack,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Bienvenida
+      body: GestureDetector(
+        onHorizontalDragEnd: (details) {
+          if (details.primaryVelocity! < 0) {
+            // Swipe Left -> Go to History
+            context.go('/history');
+          }
+        },
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               Text(
-                '¡Bienvenido!',
-                style: GoogleFonts.montserratAlternates(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              // Nombre completo
-              Text(
-                driver?.fullName ?? 'Driver',
+                'Bienvenido ${driver?.name ?? ""}',
                 style: GoogleFonts.montserratAlternates(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
+                  color: Colors.black,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 20),
 
-              // Email
-              Text(
-                driver?.email ?? '',
-                style: GoogleFonts.montserratAlternates(
-                  fontSize: 14,
-                  color: Colors.grey,
-                ),
+              // Status Card
+              StatusCard(
+                isOnline: _isOnline,
+                onStatusChanged: (value) {
+                  setState(() {
+                    _isOnline = value;
+                  });
+                  // TODO: Call API to update status
+                },
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 30),
 
-              // Estado del driver
+              // Resumen Card
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
-                ),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: _getStatusColor(driver?.status),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      _getStatusIcon(driver?.status),
-                      color: Colors.white,
-                      size: 20,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      _getStatusText(driver?.status),
-                      style: GoogleFonts.montserratAlternates(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Resumen de hoy',
+                          style: GoogleFonts.montserratAlternates(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black,
+                          ),
+                        ),
+                        Text(
+                          DateFormat('d MMM. yyyy').format(DateTime.now()),
+                          style: GoogleFonts.montserratAlternates(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    GridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 1.5,
+                      children: const [
+                        StatCard(
+                          icon: Icons.check_circle_outline,
+                          title: 'Entregas',
+                          value: '12',
+                        ),
+                        StatCard(
+                          icon: Icons.attach_money,
+                          title: 'Ganancias',
+                          value: 'Bs. 87.20',
+                        ),
+                        StatCard(
+                          icon: Icons.access_time,
+                          title: 'Horas',
+                          value: '5.5h',
+                        ),
+                        StatCard(
+                          icon: Icons.trending_up,
+                          title: 'Aceptación',
+                          value: '90%',
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 30),
 
-              // Card vehículo
-              Card(
-                elevation: 2,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.motorcycle,
-                        size: 40,
-                        color: primaryYellow,
-                      ),
-                      const SizedBox(width: 16),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Vehículo',
-                            style: GoogleFonts.montserratAlternates(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          Text(
-                            driver?.vehicle ?? 'No registrado',
-                            style: GoogleFonts.montserratAlternates(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Card teléfono
-              Card(
-                elevation: 2,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.phone, size: 40, color: primaryYellow),
-                      const SizedBox(width: 16),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Teléfono',
-                            style: GoogleFonts.montserratAlternates(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          Text(
-                            driver?.phone ?? 'No registrado',
-                            style: GoogleFonts.montserratAlternates(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              // Waiting Orders or Offline Card
+              if (_isOnline) 
+                const WaitingOrdersCard()
+              else
+                const OfflineCard(),
+              // Extra space for bottom nav
+              const SizedBox(height: 20),
             ],
           ),
         ),
+        ),
+      ),
+      bottomNavigationBar: CustomNavbar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+            if (index == 0) {
+              // Already here
+            } else if (index == 1) {
+              context.go('/history');
+            } else if (index == 2) {
+              context.go('/profile');
+            }
+          });
+        },
       ),
     );
-  }
-
-  Color _getStatusColor(String? status) {
-    switch (status) {
-      case 'AVAILABLE':
-        return Colors.green;
-      case 'BUSY':
-        return Colors.orange;
-      case 'OFFLINE':
-      default:
-        return Colors.grey;
-    }
-  }
-
-  IconData _getStatusIcon(String? status) {
-    switch (status) {
-      case 'AVAILABLE':
-        return Icons.check_circle;
-      case 'BUSY':
-        return Icons.delivery_dining;
-      case 'OFFLINE':
-      default:
-        return Icons.power_settings_new;
-    }
-  }
-
-  String _getStatusText(String? status) {
-    switch (status) {
-      case 'AVAILABLE':
-        return 'Disponible';
-      case 'BUSY':
-        return 'En entrega';
-      case 'OFFLINE':
-      default:
-        return 'Desconectado';
-    }
   }
 }
