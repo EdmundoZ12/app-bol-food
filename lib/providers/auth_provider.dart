@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-import '../models/driver.dart';
-import '../services/auth_service.dart';
+import '../models/auth/driver.dart';
+import '../services/auth/auth_service.dart';
 
 enum AuthStatus { checking, authenticated, notAuthenticated }
 

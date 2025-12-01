@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
-import '../config/constants.dart';
-import '../models/driver.dart';
-import '../utils/variables.dart';
+import '../../config/constants.dart';
+import '../../models/auth/driver.dart';
+import '../../utils/variables.dart';
 
 class AuthService {
   final Dio _dio = Dio(

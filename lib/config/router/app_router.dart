@@ -1,8 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:bol_food_app/screens/orders/order_delivered_screen.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 
-import '../../providers/auth_provider.dart';
 import '../../screens/screens.dart';
 
 final appRouter = GoRouter(
@@ -26,5 +24,15 @@ final appRouter = GoRouter(
 
     // Home
     GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
+
+    // Active Order
+    GoRoute(
+      path: '/active-order',
+      builder: (context, state) => const ActiveOrderScreen(),
+    ),
+    GoRoute(
+      path: '/order-delivered',
+      builder: (context, state) => const OrderDeliveredScreen(),
+    ),
   ],
 );
