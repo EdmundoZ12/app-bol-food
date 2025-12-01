@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:dio/dio.dart';
@@ -21,54 +20,37 @@ class _HomeScreenState extends State<HomeScreen> {
   late OrderService _orderService;
   List<Order> _activeOrders = [];
   bool _isLoading = false;
-  Timer? _pollingTimer;
 
   @override
   void initState() {
     super.initState();
     
     final dio = Dio(BaseOptions(
-      baseUrl: AppConstants.baseUrl,
+      baseURL: AppConstants.baseUrl,
       headers: {'Content-Type': 'application/json'},
     ));
     _orderService = OrderService(dio);
     
     _loadActiveOrders();
-    
-    // Polling automático cada 10 segundos
-    _pollingTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
-      print('🔄 Polling automático - verificando pedidos...');
-      _loadActiveOrders();
-    });
   }
 
   Future<void> _loadActiveOrders() async {
-    print('🔄 Cargando pedidos activos...');
-    
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    if (authProvider.driver == null) {
-      print('❌ No hay driver autenticado');
-      return;
-    }
+    if (authProvider.driver == null) return;
 
-    print('📱 Driver ID: ${authProvider.driver!.id}');
     setState(() => _isLoading = true);
 
     try {
-      print('📡 Llamando al backend...');
       final orders = await _orderService.getDriverOrders(authProvider.driver!.id);
-      print('✅ Pedidos recibidos: ${orders.length}');
-      
       setState(() {
         _activeOrders = orders.where((order) => 
           order.status != 'DELIVERED' && order.status != 'CANCELLED'
         ).toList();
-        print('📦 Pedidos activos filtrados: ${_activeOrders.length}');
         _isLoading = false;
       });
     } catch (e) {
-      print('❌ Error cargando pedidos: $e');
       setState(() => _isLoading = false);
+      print('Error cargando pedidos: $e');
     }
   }
 
@@ -422,11 +404,5 @@ class _HomeScreenState extends State<HomeScreen> {
       default:
         return status;
     }
-  }
-
-  @override
-  void dispose() {
-    _pollingTimer?.cancel();
-    super.dispose();
   }
 }

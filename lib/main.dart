@@ -7,6 +7,7 @@ import 'config/config.dart';
 import 'config/router/app_router.dart';
 import 'notifications/bloc/notifications_bloc.dart';
 import 'providers/auth_provider.dart';
+import 'providers/tracking_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +21,7 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => TrackingProvider()),
         BlocProvider(create: (_) => NotificationsBloc()),
       ],
       child: const MainApp(),

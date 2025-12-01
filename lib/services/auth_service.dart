@@ -42,7 +42,9 @@ class AuthService {
       print('✅ Registro exitoso: ${response.data}');
       return Driver.fromJson(response.data);
     } on DioException catch (e) {
-      print('❌ Error en registro: ${e.response?.data}');
+      print('❌ Error en registro: ${e.message}');
+      print('❌ Status code: ${e.response?.statusCode}');
+      print('❌ Response data: ${e.response?.data}');
       final message = e.response?.data['message'] ?? 'Error al registrar';
       throw Exception(message);
     }
@@ -73,7 +75,9 @@ class AuthService {
         'token': response.data['access_token'],
       };
     } on DioException catch (e) {
-      print('❌ Error en login: ${e.response?.data}');
+      print('❌ Error en login: ${e.message}');
+      print('❌ Status code: ${e.response?.statusCode}');
+      print('❌ Response data: ${e.response?.data}');
       final message = e.response?.data['message'] ?? 'Credenciales inválidas';
       throw Exception(message);
     }

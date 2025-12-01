@@ -132,6 +132,34 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Actualizar estado del driver
+  Future<void> updateDriverStatus(String newStatus) async {
+    try {
+      if (_driver == null || _token == null) return;
+
+      print('📱 AuthProvider: Actualizando estado a $newStatus...');
+
+      // Aquí deberías hacer la llamada al backend para actualizar el estado
+      // Por ahora solo actualizamos localmente
+      _driver = Driver(
+        id: _driver!.id,
+        email: _driver!.email,
+        name: _driver!.name,
+        lastname: _driver!.lastname,
+        phone: _driver!.phone,
+        vehicle: _driver!.vehicle,
+        status: newStatus,
+        isActive: _driver!.isActive,
+      );
+
+      print('✅ Estado actualizado a: $newStatus');
+      notifyListeners();
+    } catch (e) {
+      print('❌ Error actualizando estado: $e');
+      rethrow;
+    }
+  }
+
   /// Verificar autenticación al iniciar la app
   Future<void> checkAuth() async {
     try {
