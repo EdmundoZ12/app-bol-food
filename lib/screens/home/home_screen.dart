@@ -1,5 +1,6 @@
 import 'package:bol_food_app/models/auth/driver_stats.dart';
 import 'package:bol_food_app/services/auth/driver_service.dart';
+import 'package:bol_food_app/services/location/tracking_service.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -26,12 +27,19 @@ class _HomeScreenState extends State<HomeScreen> {
   DriverStats _stats = DriverStats.empty();
 
   final DriverService _driverService = DriverService();
+  final TrackingService _trackingService = TrackingService();
 
   @override
   void initState() {
     super.initState();
     _loadStats();
     _syncOnlineStatus();
+  }
+
+  @override
+  void dispose() {
+    _trackingService.dispose();
+    super.dispose();
   }
 
   void _syncOnlineStatus() {
@@ -41,7 +49,29 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _isOnline = driver.isAvailable;
       });
+
+      // Si ya está online, iniciar tracking
+      if (driver.isAvailable) {
+        _startTracking(authProvider);
+      }
     }
+  }
+
+  Future<void> _startTracking(AuthProvider authProvider) async {
+    final driver = authProvider.driver;
+    final token = authProvider.token;
+
+    if (driver == null || token == null) return;
+
+    await _trackingService.startTracking(
+      driverId: driver.id,
+      token: token,
+      sendIntervalSeconds: 15,
+    );
+  }
+
+  void _stopTracking() {
+    _trackingService.stopTracking();
   }
 
   Future<void> _loadStats() async {
@@ -559,6 +589,13 @@ class _HomeScreenState extends State<HomeScreen> {
         _isOnline = value;
         _isTogglingStatus = false;
       });
+
+      // Iniciar o detener tracking según el estado
+      if (value) {
+        await _startTracking(authProvider);
+      } else {
+        _stopTracking();
+      }
 
       // Recargar perfil para actualizar el estado
       await authProvider.checkAuth();

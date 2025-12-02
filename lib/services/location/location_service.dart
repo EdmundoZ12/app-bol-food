@@ -1,6 +1,12 @@
+import 'dart:async';
 import 'package:geolocator/geolocator.dart';
 
 class LocationService {
+  StreamSubscription<Position>? _positionSubscription;
+  Position? _lastPosition;
+
+  Position? get lastPosition => _lastPosition;
+
   /// Verificar y solicitar permisos de ubicación
   Future<bool> checkAndRequestPermission() async {
     bool serviceEnabled;
@@ -9,7 +15,7 @@ class LocationService {
     // Verificar si el servicio de ubicación está habilitado
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      print('❌ Servicios de ubicación deshabilitados');
+      print('❌ Servicio de ubicación deshabilitado');
       return false;
     }
 
@@ -18,21 +24,21 @@ class LocationService {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        print('❌ Permisos de ubicación denegados');
+        print('❌ Permiso de ubicación denegado');
         return false;
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
-      print('❌ Permisos de ubicación denegados permanentemente');
+      print('❌ Permiso de ubicación denegado permanentemente');
       return false;
     }
 
-    print('✅ Permisos de ubicación concedidos');
+    print('✅ Permiso de ubicación concedido');
     return true;
   }
 
-  /// Obtener ubicación actual
+  /// Obtener ubicación actual una sola vez
   Future<Position?> getCurrentLocation() async {
     try {
       final hasPermission = await checkAndRequestPermission();
@@ -42,6 +48,7 @@ class LocationService {
         desiredAccuracy: LocationAccuracy.high,
       );
 
+      _lastPosition = position;
       print('📍 Ubicación actual: ${position.latitude}, ${position.longitude}');
       return position;
     } catch (e) {
@@ -50,33 +57,57 @@ class LocationService {
     }
   }
 
-  /// Stream de ubicación para tracking en tiempo real
-  Stream<Position> getLocationStream() {
-    const locationSettings = LocationSettings(
-      accuracy: LocationAccuracy.high,
-      distanceFilter: 10, // Actualizar cada 10 metros
-    );
+  /// Iniciar tracking continuo de ubicación
+  void startTracking({
+    required Function(Position) onLocationUpdate,
+    int distanceFilter = 10, // metros mínimos para nueva actualización
+  }) {
+    print('🚀 Iniciando tracking de ubicación...');
 
-    return Geolocator.getPositionStream(locationSettings: locationSettings);
+    _positionSubscription =
+        Geolocator.getPositionStream(
+          locationSettings: LocationSettings(
+            accuracy: LocationAccuracy.high,
+            distanceFilter: distanceFilter,
+          ),
+        ).listen(
+          (Position position) {
+            _lastPosition = position;
+            print(
+              '📍 Nueva ubicación: ${position.latitude}, ${position.longitude}',
+            );
+            onLocationUpdate(position);
+          },
+          onError: (error) {
+            print('❌ Error en tracking: $error');
+          },
+        );
   }
 
-  /// Calcular distancia entre dos puntos (en metros)
+  /// Detener tracking de ubicación
+  void stopTracking() {
+    print('🛑 Deteniendo tracking de ubicación');
+    _positionSubscription?.cancel();
+    _positionSubscription = null;
+  }
+
+  /// Calcular distancia entre dos puntos en metros
   double calculateDistance(
-    double startLat,
-    double startLng,
-    double endLat,
-    double endLng,
+    double startLatitude,
+    double startLongitude,
+    double endLatitude,
+    double endLongitude,
   ) {
-    return Geolocator.distanceBetween(startLat, startLng, endLat, endLng);
+    return Geolocator.distanceBetween(
+      startLatitude,
+      startLongitude,
+      endLatitude,
+      endLongitude,
+    );
   }
 
-  /// Abrir configuración de ubicación
-  Future<void> openLocationSettings() async {
-    await Geolocator.openLocationSettings();
-  }
-
-  /// Abrir configuración de la app
-  Future<void> openAppSettings() async {
-    await Geolocator.openAppSettings();
+  /// Liberar recursos
+  void dispose() {
+    stopTracking();
   }
 }
