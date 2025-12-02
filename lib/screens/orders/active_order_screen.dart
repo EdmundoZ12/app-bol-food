@@ -115,7 +115,10 @@ class _ActiveOrderScreenState extends State<ActiveOrderScreen> {
   Widget _buildContentByStatus(Order order, OrderProvider orderProvider) {
     switch (order.status) {
       case OrderStatus.accepted:
+        // Estado inicial: Mostrar "Voy al restaurante"
+        return _buildAcceptedView(order, orderProvider);
       case OrderStatus.pickingUp:
+        // En camino al restaurante: Mostrar "He llegado"
         return _buildGoToRestaurantView(order, orderProvider);
       case OrderStatus.pickedUp:
         return _buildConfirmItemsView(order, orderProvider);
@@ -126,12 +129,58 @@ class _ActiveOrderScreenState extends State<ActiveOrderScreen> {
           return _buildDeliveringView(order, orderProvider);
         }
       default:
-        return _buildGoToRestaurantView(order, orderProvider);
+        return _buildAcceptedView(order, orderProvider);
     }
   }
 
   // ============================================
-  // ESTADO: ACCEPTED / PICKING_UP
+  // ESTADO: ACCEPTED
+  // Pantalla: "Pedido aceptado - Ir al restaurante"
+  // ============================================
+  Widget _buildAcceptedView(Order order, OrderProvider orderProvider) {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '¡Pedido Aceptado!',
+              style: GoogleFonts.montserratAlternates(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Order ID Badge
+            _buildOrderBadge(order),
+            const SizedBox(height: 16),
+
+            // Info del restaurante
+            _buildRestaurantInfoCard(order),
+            const SizedBox(height: 16),
+
+            // Mapa
+            _buildMap(
+              destinationLat: AppConstants.restaurantLatitude,
+              destinationLng: AppConstants.restaurantLongitude,
+            ),
+            const SizedBox(height: 20),
+
+            // Botón: Voy al restaurante
+            _buildActionButton(
+              'Voy al restaurante',
+              () => _markPickingUp(orderProvider),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================
+  // ESTADO: PICKING_UP
   // Pantalla: "Dirígete al restaurant"
   // ============================================
   Widget _buildGoToRestaurantView(Order order, OrderProvider orderProvider) {
@@ -733,6 +782,15 @@ class _ActiveOrderScreenState extends State<ActiveOrderScreen> {
   // ============================================
   // ACCIONES
   // ============================================
+  Future<void> _markPickingUp(OrderProvider orderProvider) async {
+    final token = context.read<AuthProvider>().token;
+    if (token == null) return;
+
+    setState(() => _isLoading = true);
+    await orderProvider.markPickingUp(token);
+    setState(() => _isLoading = false);
+  }
+
   Future<void> _markPickedUp(OrderProvider orderProvider) async {
     final token = context.read<AuthProvider>().token;
     if (token == null) return;
