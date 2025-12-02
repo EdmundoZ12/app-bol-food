@@ -96,6 +96,7 @@ class Order {
   final DateTime? createdAt;
   final DateTime? assignedAt;
   final DateTime? acceptedAt;
+  final DateTime? deliveredAt;
 
   Order({
     required this.id,
@@ -116,6 +117,7 @@ class Order {
     this.createdAt,
     this.assignedAt,
     this.acceptedAt,
+    this.deliveredAt,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -147,6 +149,9 @@ class Order {
           : null,
       acceptedAt: json['acceptedAt'] != null
           ? DateTime.parse(json['acceptedAt'])
+          : null,
+      deliveredAt: json['deliveredAt'] != null
+          ? DateTime.parse(json['deliveredAt'])
           : null,
     );
   }

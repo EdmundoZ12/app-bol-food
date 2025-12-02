@@ -129,7 +129,13 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       bottomNavigationBar: BottomNavBar(
         currentIndex: _currentNavIndex,
-        onTap: (index) => setState(() => _currentNavIndex = index),
+        onTap: (index) {
+          if (index == 1) {
+            context.go('/delivery-history');
+          } else {
+            setState(() => _currentNavIndex = index);
+          }
+        },
       ),
     );
   }

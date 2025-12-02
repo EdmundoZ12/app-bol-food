@@ -235,10 +235,21 @@ class OrderProvider extends ChangeNotifier {
   /// Obtener historial de pedidos
   Future<void> loadOrderHistory(String driverId, String token) async {
     try {
-      _orderHistory = await _orderService.getDriverOrders(driverId, token);
+      _isLoading = true;
+      notifyListeners();
+
+      final allOrders = await _orderService.getDriverOrders(driverId, token);
+      // Filtrar solo pedidos entregados
+      _orderHistory = allOrders
+          .where((order) => order.status == OrderStatus.delivered)
+          .toList();
+
+      _isLoading = false;
       notifyListeners();
     } catch (e) {
       print('❌ Error cargando historial: $e');
+      _isLoading = false;
+      notifyListeners();
     }
   }
 

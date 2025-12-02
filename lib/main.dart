@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 import 'config/config.dart';
 import 'config/router/app_router.dart';
@@ -15,6 +16,9 @@ void main() async {
 
   // Cargar variables de entorno
   await dotenv.load(fileName: ".env");
+
+  // Inicializar formateo de fechas para español
+  await initializeDateFormatting('es', null);
 
   await NotificationsBloc.initializeFCM();
 

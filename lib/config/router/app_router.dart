@@ -25,6 +25,12 @@ final appRouter = GoRouter(
     // Home
     GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
 
+    // Delivery History
+    GoRoute(
+      path: '/delivery-history',
+      builder: (context, state) => const DeliveryHistoryScreen(),
+    ),
+
     // Active Order
     GoRoute(
       path: '/active-order',

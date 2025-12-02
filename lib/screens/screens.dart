@@ -5,3 +5,4 @@ export 'auth/check_auth_screen.dart';
 export 'home/home_screen.dart';
 export 'orders/active_order_screen.dart';
 export 'orders/order_delivered_screen.dart';
+export 'orders/delivery_history_screen.dart';
