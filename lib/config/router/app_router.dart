@@ -1,6 +1,7 @@
 import 'package:bol_food_app/screens/orders/order_delivered_screen.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../models/order/order.dart';
 import '../../screens/screens.dart';
 
 final appRouter = GoRouter(
@@ -39,6 +40,15 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/order-delivered',
       builder: (context, state) => const OrderDeliveredScreen(),
+    ),
+
+    // Order Detail
+    GoRoute(
+      path: '/order-detail',
+      builder: (context, state) {
+        final order = state.extra as Order;
+        return OrderDetailScreen(order: order);
+      },
     ),
   ],
 );

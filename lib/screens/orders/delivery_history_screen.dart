@@ -194,10 +194,12 @@ class _DeliveryHistoryScreenState extends State<DeliveryHistoryScreen> {
             ? dateFormat.format(order.createdAt!)
             : 'Fecha no disponible';
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
+    return GestureDetector(
+      onTap: () => context.push('/order-detail', extra: order),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.shade200),
@@ -287,6 +289,7 @@ class _DeliveryHistoryScreenState extends State<DeliveryHistoryScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 
