@@ -323,15 +323,11 @@ class _HomeScreenState extends State<HomeScreen> {
     OrderProvider orderProvider,
     AuthProvider authProvider,
   ) {
-    if (orderProvider.hasActiveOrder) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        // Ya no redirigimos aquí manualmente, dejamos que el polling lo haga
-        // context.push('/active-order'); 
-      });
-      return const Center(
-        child: CircularProgressIndicator(color: primaryYellow),
-      );
-    }
+    // if (orderProvider.hasActiveOrder) {
+    //   return const Center(
+    //     child: CircularProgressIndicator(color: primaryYellow),
+    //   );
+    // }
 
     return RefreshIndicator(
       onRefresh: _loadStats,

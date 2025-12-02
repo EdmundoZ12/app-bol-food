@@ -8,6 +8,7 @@ import '../../config/theme/app_theme.dart';
 import '../../models/order/order.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/order/order_service.dart';
+import '../../services/order/order_polling_service.dart';
 import '../../widgets/navigation_map_widget.dart';
 
 class NavigateToCustomerScreen extends StatefulWidget {
@@ -57,6 +58,8 @@ class _NavigateToCustomerScreenState extends State<NavigateToCustomerScreen> {
         );
 
         if (mounted) {
+          // Limpiar el pedido activo del polling para detener la navegación automática
+          context.read<OrderPollingService>().clearActiveOrder();
           context.go('/order/success');
         }
       }
