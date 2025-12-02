@@ -82,4 +82,18 @@ class DriverService {
       return false;
     }
   }
+  /// Actualizar Token FCM
+  Future<bool> updateAppToken(String driverId, String appToken, String token) async {
+    try {
+      await _dio.patch(
+        '/drivers/$driverId',
+        data: {'appToken': appToken},
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      return true;
+    } on DioException catch (e) {
+      print('❌ Error actualizando appToken: ${e.response?.data}');
+      return false;
+    }
+  }
 }

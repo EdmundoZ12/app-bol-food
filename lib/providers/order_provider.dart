@@ -51,7 +51,7 @@ class OrderProvider extends ChangeNotifier {
   }
 
   /// Aceptar pedido
-  Future<bool> acceptOrder(String token) async {
+  Future<bool> acceptOrder(String driverId, String token) async {
     if (_incomingOrder == null) return false;
 
     try {
@@ -59,7 +59,7 @@ class OrderProvider extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
-      final order = await _orderService.acceptOrder(_incomingOrder!.id, token);
+      final order = await _orderService.acceptOrder(_incomingOrder!.id, driverId, token);
 
       _currentOrder = order;
       _incomingOrder = null;
@@ -77,7 +77,7 @@ class OrderProvider extends ChangeNotifier {
   }
 
   /// Rechazar pedido
-  Future<bool> rejectOrder(String token) async {
+  Future<bool> rejectOrder(String driverId, String token) async {
     if (_incomingOrder == null) return false;
 
     try {
@@ -85,7 +85,7 @@ class OrderProvider extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
-      await _orderService.rejectOrder(_incomingOrder!.id, token);
+      await _orderService.rejectOrder(_incomingOrder!.id, driverId, token);
 
       _incomingOrder = null;
 
@@ -101,15 +101,15 @@ class OrderProvider extends ChangeNotifier {
     }
   }
 
-  /// Marcar: Voy al restaurante
-  Future<bool> markPickingUp(String token) async {
+  /// Marcar: Llegué al restaurante
+  Future<bool> arrivedAtRestaurant(String driverId, String token) async {
     if (_currentOrder == null) return false;
 
     try {
       _isLoading = true;
       notifyListeners();
 
-      final order = await _orderService.markPickingUp(_currentOrder!.id, token);
+      final order = await _orderService.arrivedAtRestaurant(_currentOrder!.id, driverId, token);
       _currentOrder = order;
 
       _isLoading = false;
@@ -124,15 +124,15 @@ class OrderProvider extends ChangeNotifier {
     }
   }
 
-  /// Marcar: Recogí el pedido
-  Future<bool> markPickedUp(String token) async {
+  /// Marcar: Confirmar recogida del pedido
+  Future<bool> confirmPickup(String driverId, String token) async {
     if (_currentOrder == null) return false;
 
     try {
       _isLoading = true;
       notifyListeners();
 
-      final order = await _orderService.markPickedUp(_currentOrder!.id, token);
+      final order = await _orderService.confirmPickup(_currentOrder!.id, driverId, token);
       _currentOrder = order;
 
       _isLoading = false;
@@ -147,15 +147,15 @@ class OrderProvider extends ChangeNotifier {
     }
   }
 
-  /// Marcar: En camino
-  Future<bool> markInTransit(String token) async {
+  /// Marcar: Estoy en la puerta del cliente
+  Future<bool> atCustomerDoor(String driverId, String token) async {
     if (_currentOrder == null) return false;
 
     try {
       _isLoading = true;
       notifyListeners();
 
-      final order = await _orderService.markInTransit(_currentOrder!.id, token);
+      final order = await _orderService.atCustomerDoor(_currentOrder!.id, driverId, token);
       _currentOrder = order;
 
       _isLoading = false;
@@ -170,15 +170,15 @@ class OrderProvider extends ChangeNotifier {
     }
   }
 
-  /// Marcar: Entregado
-  Future<bool> markDelivered(String token) async {
+  /// Marcar: Confirmar entrega
+  Future<bool> confirmDelivery(String driverId, String token) async {
     if (_currentOrder == null) return false;
 
     try {
       _isLoading = true;
       notifyListeners();
 
-      final order = await _orderService.markDelivered(_currentOrder!.id, token);
+      final order = await _orderService.confirmDelivery(_currentOrder!.id, driverId, token);
 
       // Agregar a historial
       _orderHistory.insert(0, order);
@@ -201,7 +201,7 @@ class OrderProvider extends ChangeNotifier {
     if (_currentOrder == null) return;
 
     try {
-      final order = await _orderService.getOrder(_currentOrder!.id, token);
+      final order = await _orderService.getOrderDetails(_currentOrder!.id, token);
       _currentOrder = order;
       notifyListeners();
     } catch (e) {

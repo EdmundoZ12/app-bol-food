@@ -9,6 +9,7 @@ enum OrderStatus {
   pickingUp,
   pickedUp,
   inTransit,
+  atPlace,
   delivered,
   cancelled,
   rejected,
@@ -33,6 +34,8 @@ extension OrderStatusExtension on OrderStatus {
         return 'PICKED_UP';
       case OrderStatus.inTransit:
         return 'IN_TRANSIT';
+      case OrderStatus.atPlace:
+        return 'AT_PLACE';
       case OrderStatus.delivered:
         return 'DELIVERED';
       case OrderStatus.cancelled:
@@ -60,6 +63,8 @@ extension OrderStatusExtension on OrderStatus {
         return OrderStatus.pickedUp;
       case 'IN_TRANSIT':
         return OrderStatus.inTransit;
+      case 'AT_PLACE':
+        return OrderStatus.atPlace;
       case 'DELIVERED':
         return OrderStatus.delivered;
       case 'CANCELLED':

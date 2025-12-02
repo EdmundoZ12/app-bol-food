@@ -8,8 +8,14 @@ import 'package:provider/provider.dart';
 import '../../config/theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/order_provider.dart';
+import '../../services/order/order_polling_service.dart';
+import 'dart:async';
+import 'package:geolocator/geolocator.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import '../../services/location/location_service.dart';
 import '../../widgets/bottom_nav_bar.dart';
 import '../../widgets/incoming_order_modal.dart';
+import '../../models/order/order.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -25,13 +31,170 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isTogglingStatus = false;
   DriverStats _stats = DriverStats.empty();
 
+  // Variables para controlar la navegación automática y evitar bucles
+  String? _lastNavigatedOrderId;
+  OrderStatus? _lastNavigatedStatus;
+
   final DriverService _driverService = DriverService();
+  final LocationService _locationService = LocationService();
+  Timer? _locationUpdateTimer;
 
   @override
   void initState() {
     super.initState();
     _loadStats();
     _syncOnlineStatus();
+    _updateFCMToken();
+    
+    // Retrasar el inicio de servicios pesados para evitar sobrecarga inicial y crashes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          _startLocationTracking();
+          _startPolling();
+          context.read<OrderPollingService>().addListener(_handlePollingUpdate);
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _locationUpdateTimer?.cancel();
+    context.read<OrderPollingService>().removeListener(_handlePollingUpdate);
+    _stopPolling();
+    super.dispose();
+  }
+
+  Future<void> _updateFCMToken() async {
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+      if (!mounted) return;
+      final authProvider = context.read<AuthProvider>();
+      
+      if (token != null && authProvider.token != null && authProvider.driver != null) {
+        print('📱 Actualizando FCM Token: $token');
+        await _driverService.updateAppToken(
+          authProvider.driver!.id,
+          token,
+          authProvider.token!,
+        );
+      }
+    } catch (e) {
+      print('❌ Error actualizando FCM Token: $e');
+    }
+  }
+
+  void _startLocationTracking() async {
+    final hasPermission = await _locationService.checkAndRequestPermission();
+    if (!hasPermission) return;
+
+    // Actualizar ubicación inicial
+    final position = await _locationService.getCurrentLocation();
+    if (position != null) {
+      _sendLocationUpdate(position);
+    }
+
+    // Actualizar cada 30 segundos
+    _locationUpdateTimer = Timer.periodic(const Duration(seconds: 30), (timer) async {
+       if (!mounted) return;
+       final pos = await _locationService.getCurrentLocation();
+       if (pos != null) _sendLocationUpdate(pos);
+    });
+  }
+
+  Future<void> _sendLocationUpdate(Position position) async {
+    if (!mounted) return;
+    final authProvider = context.read<AuthProvider>();
+    if (authProvider.token != null && authProvider.driver != null) {
+      // Solo enviar si está ONLINE (AVAILABLE o BUSY)
+      // Pero para la primera vez, enviamos igual para que el sistema sepa dónde está
+      
+      await _driverService.updateLocation(
+        authProvider.driver!.id,
+        position.latitude,
+        position.longitude,
+        authProvider.token!,
+        accuracy: position.accuracy,
+        speed: position.speed,
+        heading: position.heading,
+      );
+    }
+  }
+
+  void _startPolling() {
+    final authProvider = context.read<AuthProvider>();
+    final pollingService = context.read<OrderPollingService>();
+    
+    if (authProvider.isAuthenticated && authProvider.driver != null) {
+      pollingService.startPolling(
+        authProvider.driver!.id,
+        authProvider.token!,
+      );
+    }
+  }
+
+  void _stopPolling() {
+    final pollingService = context.read<OrderPollingService>();
+    pollingService.stopPolling();
+  }
+
+  void _handlePollingUpdate() {
+    if (!mounted) return;
+
+    final pollingService = context.read<OrderPollingService>();
+    final activeOrder = pollingService.activeOrder;
+    final orderProvider = context.read<OrderProvider>();
+
+    if (activeOrder == null) return;
+
+    // Si el pedido está en estado ASSIGNED, lo tratamos como pedido entrante
+    if (activeOrder.status == OrderStatus.assigned) {
+      // Solo actualizar si es diferente al actual para evitar redibujados innecesarios
+      if (orderProvider.incomingOrder?.id != activeOrder.id) {
+        orderProvider.setIncomingOrder(activeOrder);
+      }
+      return;
+    }
+
+    // Si el pedido ya fue aceptado (no es ASSIGNED), limpiamos el incomingOrder si existe
+    if (orderProvider.incomingOrder?.id == activeOrder.id) {
+      orderProvider.clearIncomingOrder();
+    }
+
+    // Navegación basada en estado
+    Future.delayed(Duration.zero, () {
+      if (!mounted) return;
+      
+      // Evitar navegar repetidamente a la misma orden y estado
+      if (_lastNavigatedOrderId == activeOrder.id && 
+          _lastNavigatedStatus == activeOrder.status) {
+        return;
+      }
+
+      final String location = GoRouterState.of(context).uri.toString();
+      
+      // Solo redirigir si estamos en la pantalla de inicio
+      // Esto evita interferir con la navegación cuando el usuario ya está en el flujo
+      if (location != '/home' && location != '/') return;
+      
+      bool navigated = false;
+      if (activeOrder.status == OrderStatus.accepted || 
+          activeOrder.status == OrderStatus.pickingUp) {
+        context.push('/order/navigate-restaurant', extra: activeOrder);
+        navigated = true;
+      } else if (activeOrder.status == OrderStatus.pickedUp ||
+                 activeOrder.status == OrderStatus.inTransit || 
+                 activeOrder.status == OrderStatus.atPlace) {
+        context.push('/order/navigate-customer', extra: activeOrder);
+        navigated = true;
+      }
+      
+      if (navigated) {
+        _lastNavigatedOrderId = activeOrder.id;
+        _lastNavigatedStatus = activeOrder.status;
+      }
+    });
   }
 
   void _syncOnlineStatus() {
@@ -162,7 +325,8 @@ class _HomeScreenState extends State<HomeScreen> {
   ) {
     if (orderProvider.hasActiveOrder) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        context.push('/active-order');
+        // Ya no redirigimos aquí manualmente, dejamos que el polling lo haga
+        // context.push('/active-order'); 
       });
       return const Center(
         child: CircularProgressIndicator(color: primaryYellow),
@@ -330,7 +494,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: GoogleFonts.montserratAlternates(
                   fontSize: 13,
                   color: Colors.grey.shade600,
-                ),
+                  ),
               ),
             ],
           ),
@@ -592,11 +756,21 @@ class _HomeScreenState extends State<HomeScreen> {
     AuthProvider authProvider,
   ) async {
     final token = authProvider.token;
-    if (token == null) return;
+    final driverId = authProvider.driver?.id;
+    if (token == null || driverId == null) return;
 
-    final success = await orderProvider.acceptOrder(token);
+    final success = await orderProvider.acceptOrder(driverId, token);
     if (success && mounted) {
-      context.push('/active-order');
+      // Limpiar el modal inmediatamente
+      orderProvider.clearIncomingOrder();
+      
+      // Forzar actualización del polling para que detecte el cambio de estado y navegue
+      final pollingService = context.read<OrderPollingService>();
+      // Esperar un momento para que el backend procese
+      await Future.delayed(const Duration(milliseconds: 500));
+      // Reiniciar polling para forzar verificación inmediata
+      pollingService.stopPolling();
+      pollingService.startPolling(driverId, token);
     } else if (mounted && orderProvider.errorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -612,7 +786,8 @@ class _HomeScreenState extends State<HomeScreen> {
     AuthProvider authProvider,
   ) async {
     final token = authProvider.token;
-    if (token == null) return;
-    await orderProvider.rejectOrder(token);
+    final driverId = authProvider.driver?.id;
+    if (token == null || driverId == null) return;
+    await orderProvider.rejectOrder(driverId, token);
   }
 }

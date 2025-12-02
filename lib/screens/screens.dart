@@ -5,3 +5,7 @@ export 'auth/check_auth_screen.dart';
 export 'home/home_screen.dart';
 export 'orders/active_order_screen.dart';
 export 'orders/order_delivered_screen.dart';
+export 'order_flow/new_order_screen.dart';
+export 'order_flow/navigate_to_restaurant_screen.dart';
+export 'order_flow/confirm_pickup_screen.dart';
+export 'order_flow/navigate_to_customer_screen.dart';

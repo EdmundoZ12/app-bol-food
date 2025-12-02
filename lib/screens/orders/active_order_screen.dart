@@ -734,29 +734,35 @@ class _ActiveOrderScreenState extends State<ActiveOrderScreen> {
   // ACCIONES
   // ============================================
   Future<void> _markPickedUp(OrderProvider orderProvider) async {
-    final token = context.read<AuthProvider>().token;
-    if (token == null) return;
+    final authProvider = context.read<AuthProvider>();
+    final token = authProvider.token;
+    final driverId = authProvider.driver?.id;
+    if (token == null || driverId == null) return;
 
     setState(() => _isLoading = true);
-    await orderProvider.markPickedUp(token);
+    await orderProvider.confirmPickup(driverId, token);
     setState(() => _isLoading = false);
   }
 
   Future<void> _markInTransit(OrderProvider orderProvider) async {
-    final token = context.read<AuthProvider>().token;
-    if (token == null) return;
+    final authProvider = context.read<AuthProvider>();
+    final token = authProvider.token;
+    final driverId = authProvider.driver?.id;
+    if (token == null || driverId == null) return;
 
     setState(() => _isLoading = true);
-    await orderProvider.markInTransit(token);
+    await orderProvider.atCustomerDoor(driverId, token);
     setState(() => _isLoading = false);
   }
 
   Future<void> _markDelivered(OrderProvider orderProvider) async {
-    final token = context.read<AuthProvider>().token;
-    if (token == null) return;
+    final authProvider = context.read<AuthProvider>();
+    final token = authProvider.token;
+    final driverId = authProvider.driver?.id;
+    if (token == null || driverId == null) return;
 
     setState(() => _isLoading = true);
-    final success = await orderProvider.markDelivered(token);
+    final success = await orderProvider.confirmDelivery(driverId, token);
     setState(() => _isLoading = false);
 
     if (success && mounted) {

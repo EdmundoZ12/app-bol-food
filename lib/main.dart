@@ -9,6 +9,7 @@ import 'config/router/app_router.dart';
 import 'notifications/bloc/notifications_bloc.dart';
 import 'providers/auth_provider.dart';
 import 'providers/order_provider.dart';
+import 'services/order/order_polling_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,6 +33,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => OrderProvider()),
+        ChangeNotifierProvider(create: (_) => OrderPollingService()),
         BlocProvider(create: (_) => NotificationsBloc()),
       ],
       child: const MainApp(),

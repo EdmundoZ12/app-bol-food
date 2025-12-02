@@ -1,29 +1,30 @@
-import 'package:bol_food_app/config/constants.dart';
-import 'package:bol_food_app/models/order/order.dart';
 import 'package:dio/dio.dart';
+import '../../config/constants.dart';
+import '../../models/order/order.dart';
 
 class OrderService {
   final Dio _dio = Dio(
     BaseOptions(
       baseUrl: AppConstants.baseUrl,
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 15),
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 10),
       headers: {'Content-Type': 'application/json'},
     ),
   );
 
-  /// Aceptar pedido
-  Future<Order> acceptOrder(String orderId, String token) async {
+  /// Aceptar un pedido
+  Future<Order> acceptOrder(String orderId, String driverId, String token) async {
     try {
-      print('📱 OrderService: Aceptando pedido $orderId...');
+      print('📱 OrderService: Aceptando pedido $orderId');
 
       final response = await _dio.post(
-        '/driver/orders/$orderId/accept',
+        '/orders/$orderId/accept',
+        data: {'driverId': driverId},
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
-      print('✅ Pedido aceptado: ${response.data}');
-      return Order.fromJson(response.data['order']);
+      print('✅ Pedido aceptado exitosamente');
+      return Order.fromJson(response.data);
     } on DioException catch (e) {
       print('❌ Error aceptando pedido: ${e.response?.data}');
       final message = e.response?.data['message'] ?? 'Error al aceptar pedido';
@@ -31,17 +32,19 @@ class OrderService {
     }
   }
 
-  /// Rechazar pedido
-  Future<void> rejectOrder(String orderId, String token) async {
+  /// Rechazar un pedido
+  Future<Order> rejectOrder(String orderId, String driverId, String token) async {
     try {
-      print('📱 OrderService: Rechazando pedido $orderId...');
+      print('📱 OrderService: Rechazando pedido $orderId');
 
-      await _dio.post(
-        '/driver/orders/$orderId/reject',
+      final response = await _dio.post(
+        '/orders/$orderId/reject',
+        data: {'driverId': driverId},
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
-      print('✅ Pedido rechazado');
+      print('✅ Pedido rechazado exitosamente');
+      return Order.fromJson(response.data);
     } on DioException catch (e) {
       print('❌ Error rechazando pedido: ${e.response?.data}');
       final message = e.response?.data['message'] ?? 'Error al rechazar pedido';
@@ -49,122 +52,148 @@ class OrderService {
     }
   }
 
-  /// Actualizar estado: Voy al restaurante
-  Future<Order> markPickingUp(String orderId, String token) async {
+  /// Marcar llegada al restaurante
+  Future<Order> arrivedAtRestaurant(String orderId, String driverId, String token) async {
     try {
-      print('📱 OrderService: Marcando PICKING_UP...');
+      print('📱 OrderService: Marcando llegada al restaurante');
 
-      final response = await _dio.patch(
-        '/driver/orders/$orderId/picking-up',
+      final response = await _dio.post(
+        '/orders/$orderId/arrived-restaurant',
+        data: {'driverId': driverId},
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
-      print('✅ Estado actualizado a PICKING_UP');
+      print('✅ Llegada al restaurante marcada');
       return Order.fromJson(response.data);
     } on DioException catch (e) {
-      print('❌ Error actualizando estado: ${e.response?.data}');
-      final message =
-          e.response?.data['message'] ?? 'Error al actualizar estado';
+      print('❌ Error marcando llegada: ${e.response?.data}');
+      final message = e.response?.data['message'] ?? 'Error al marcar llegada';
       throw Exception(message);
     }
   }
 
-  /// Actualizar estado: Recogí el pedido
-  Future<Order> markPickedUp(String orderId, String token) async {
+  /// Confirmar recogida del pedido
+  Future<Order> confirmPickup(String orderId, String driverId, String token) async {
     try {
-      print('📱 OrderService: Marcando PICKED_UP...');
+      print('📱 OrderService: Confirmando recogida del pedido');
 
-      final response = await _dio.patch(
-        '/driver/orders/$orderId/picked-up',
+      final response = await _dio.post(
+        '/orders/$orderId/confirm-pickup',
+        data: {'driverId': driverId},
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
-      print('✅ Estado actualizado a PICKED_UP');
+      print('✅ Recogida confirmada');
       return Order.fromJson(response.data);
     } on DioException catch (e) {
-      print('❌ Error actualizando estado: ${e.response?.data}');
-      final message =
-          e.response?.data['message'] ?? 'Error al actualizar estado';
+      print('❌ Error confirmando recogida: ${e.response?.data}');
+      final message = e.response?.data['message'] ?? 'Error al confirmar recogida';
       throw Exception(message);
     }
   }
 
-  /// Actualizar estado: En camino al cliente
-  Future<Order> markInTransit(String orderId, String token) async {
+  /// Marcar llegada a la puerta del cliente
+  Future<Order> atCustomerDoor(String orderId, String driverId, String token) async {
     try {
-      print('📱 OrderService: Marcando IN_TRANSIT...');
+      print('📱 OrderService: Marcando llegada a la puerta');
 
-      final response = await _dio.patch(
-        '/driver/orders/$orderId/in-transit',
+      final response = await _dio.post(
+        '/orders/$orderId/at-door',
+        data: {'driverId': driverId},
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
-      print('✅ Estado actualizado a IN_TRANSIT');
+      print('✅ Llegada a la puerta marcada');
       return Order.fromJson(response.data);
     } on DioException catch (e) {
-      print('❌ Error actualizando estado: ${e.response?.data}');
-      final message =
-          e.response?.data['message'] ?? 'Error al actualizar estado';
+      print('❌ Error marcando llegada a la puerta: ${e.response?.data}');
+      final message = e.response?.data['message'] ?? 'Error al marcar llegada';
       throw Exception(message);
     }
   }
 
-  /// Actualizar estado: Entregado
-  Future<Order> markDelivered(String orderId, String token) async {
+  /// Confirmar entrega del pedido
+  Future<Order> confirmDelivery(String orderId, String driverId, String token) async {
     try {
-      print('📱 OrderService: Marcando DELIVERED...');
+      print('📱 OrderService: Confirmando entrega del pedido');
 
-      final response = await _dio.patch(
-        '/driver/orders/$orderId/delivered',
+      final response = await _dio.post(
+        '/orders/$orderId/confirm-delivery',
+        data: {'driverId': driverId},
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
-      print('✅ Estado actualizado a DELIVERED');
+      print('✅ Entrega confirmada');
       return Order.fromJson(response.data);
     } on DioException catch (e) {
-      print('❌ Error actualizando estado: ${e.response?.data}');
-      final message =
-          e.response?.data['message'] ?? 'Error al actualizar estado';
+      print('❌ Error confirmando entrega: ${e.response?.data}');
+      final message = e.response?.data['message'] ?? 'Error al confirmar entrega';
       throw Exception(message);
     }
   }
 
   /// Obtener detalles de un pedido
-  Future<Order> getOrder(String orderId, String token) async {
+  Future<Order> getOrderDetails(String orderId, String token) async {
     try {
-      print('📱 OrderService: Obteniendo pedido $orderId...');
+      print('📱 OrderService: Obteniendo detalles del pedido $orderId');
 
       final response = await _dio.get(
         '/orders/$orderId',
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
-      print('✅ Pedido obtenido');
       return Order.fromJson(response.data);
     } on DioException catch (e) {
-      print('❌ Error obteniendo pedido: ${e.response?.data}');
+      print('❌ Error obteniendo detalles: ${e.response?.data}');
       final message = e.response?.data['message'] ?? 'Error al obtener pedido';
       throw Exception(message);
     }
   }
 
-  /// Obtener pedidos del driver
+  /// Obtener pedidos del conductor
   Future<List<Order>> getDriverOrders(String driverId, String token) async {
     try {
-      print('📱 OrderService: Obteniendo pedidos del driver...');
-
       final response = await _dio.get(
         '/orders/driver/$driverId',
-        options: Options(headers: {'Authorization': 'Bearer $token'}),
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+        ),
       );
 
-      print('✅ Pedidos obtenidos: ${response.data.length}');
-      return (response.data as List)
-          .map((order) => Order.fromJson(order))
-          .toList();
-    } on DioException catch (e) {
-      print('❌ Error obteniendo pedidos: ${e.response?.data}');
-      return [];
+      final ordersJson = response.data as List;
+      return ordersJson.map((json) => Order.fromJson(json)).toList();
+    } catch (e) {
+      throw Exception('Error al obtener órdenes del conductor: $e');
+    }
+  }
+
+  /// Obtener pedido activo del conductor
+  Future<Order?> getActiveOrder(String driverId, String token) async {
+    try {
+      final response = await _dio.get(
+        '/orders/driver/$driverId/active',
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+        ),
+      );
+
+      print(' getActiveOrder response: ${response.statusCode} - ${response.data}');
+
+      if (response.data == null || response.data == '') {
+        return null;
+      }
+
+      if (response.data is! Map<String, dynamic>) {
+        throw Exception('Respuesta inválida del servidor: ${response.data}');
+      }
+
+      return Order.fromJson(response.data);
+    } catch (e) {
+      // Si no hay pedido activo, el backend retorna null
+      if (e.toString().contains('404')) {
+        return null;
+      }
+      throw Exception('Error al obtener pedido activo: $e');
     }
   }
 }
