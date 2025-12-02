@@ -7,3 +7,4 @@ export 'orders/active_order_screen.dart';
 export 'orders/order_delivered_screen.dart';
 export 'orders/delivery_history_screen.dart';
 export 'orders/order_detail_screen.dart';
+export 'profile/profile_screen.dart';

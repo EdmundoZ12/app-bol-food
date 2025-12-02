@@ -4,6 +4,11 @@ import 'package:geolocator/geolocator.dart';
 import 'location_service.dart';
 
 class TrackingService {
+  // Singleton para evitar múltiples instancias
+  static final TrackingService _instance = TrackingService._internal();
+  factory TrackingService() => _instance;
+  TrackingService._internal();
+
   final LocationService _locationService = LocationService();
   final DriverService _driverService = DriverService();
 

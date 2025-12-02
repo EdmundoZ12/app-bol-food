@@ -2,6 +2,11 @@ import 'dart:async';
 import 'package:geolocator/geolocator.dart';
 
 class LocationService {
+  // Singleton para evitar múltiples instancias
+  static final LocationService _instance = LocationService._internal();
+  factory LocationService() => _instance;
+  LocationService._internal();
+
   StreamSubscription<Position>? _positionSubscription;
   Position? _lastPosition;
 
@@ -62,6 +67,12 @@ class LocationService {
     required Function(Position) onLocationUpdate,
     int distanceFilter = 10, // metros mínimos para nueva actualización
   }) {
+    // Evitar iniciar múltiples streams
+    if (_positionSubscription != null) {
+      print('⚠️ Tracking ya está activo, ignorando nueva solicitud');
+      return;
+    }
+
     print('🚀 Iniciando tracking de ubicación...');
 
     _positionSubscription =

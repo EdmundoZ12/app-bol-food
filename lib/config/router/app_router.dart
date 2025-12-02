@@ -50,5 +50,11 @@ final appRouter = GoRouter(
         return OrderDetailScreen(order: order);
       },
     ),
+
+    // Profile
+    GoRoute(
+      path: '/profile',
+      builder: (context, state) => const ProfileScreen(),
+    ),
   ],
 );

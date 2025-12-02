@@ -38,7 +38,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
-    _trackingService.dispose();
+    // No llamar dispose() en el TrackingService ya que es singleton
+    // Solo detener si el usuario cierra la pantalla y no está online
+    if (!_isOnline) {
+      _trackingService.stopTracking();
+    }
     super.dispose();
   }
 
