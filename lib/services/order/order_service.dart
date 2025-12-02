@@ -112,6 +112,27 @@ class OrderService {
     }
   }
 
+  /// Actualizar estado: En la puerta del cliente
+  Future<Order> markAtDoor(String orderId, String token) async {
+    try {
+      print('📱 OrderService: Marcando AT_DOOR...');
+
+      final response = await _dio.patch(
+        '/driver/orders/$orderId/at-door',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      print('✅ Estado actualizado a AT_DOOR');
+      print('📱 Response data: ${response.data}');
+      return Order.fromJson(response.data['order']);
+    } on DioException catch (e) {
+      print('❌ Error actualizando estado: ${e.response?.data}');
+      final message =
+          e.response?.data['message'] ?? 'Error al actualizar estado';
+      throw Exception(message);
+    }
+  }
+
   /// Actualizar estado: Entregado
   Future<Order> markDelivered(String orderId, String token) async {
     try {

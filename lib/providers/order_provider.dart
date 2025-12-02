@@ -170,6 +170,29 @@ class OrderProvider extends ChangeNotifier {
     }
   }
 
+  /// Marcar: En la puerta del cliente
+  Future<bool> markAtDoor(String token) async {
+    if (_currentOrder == null) return false;
+
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      final order = await _orderService.markAtDoor(_currentOrder!.id, token);
+      _currentOrder = order;
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      print('❌ Error: $e');
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   /// Marcar: Entregado
   Future<bool> markDelivered(String token) async {
     if (_currentOrder == null) return false;

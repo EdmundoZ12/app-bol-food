@@ -23,7 +23,6 @@ class ActiveOrderScreen extends StatefulWidget {
 
 class _ActiveOrderScreenState extends State<ActiveOrderScreen> {
   bool _isLoading = false;
-  bool _isAtDoor = false; // Sub-estado para IN_TRANSIT
   GoogleMapController? _mapController;
   LatLng? _driverLocation;
   final LocationService _locationService = LocationService();
@@ -125,11 +124,11 @@ class _ActiveOrderScreenState extends State<ActiveOrderScreen> {
         // Después de confirmar recogida, ir directamente a entregar
         return _buildPickedUpView(order, orderProvider);
       case OrderStatus.inTransit:
-        if (_isAtDoor) {
-          return _buildConfirmDeliveryView(order, orderProvider);
-        } else {
-          return _buildDeliveringView(order, orderProvider);
-        }
+        // En camino al cliente con mapa
+        return _buildDeliveringView(order, orderProvider);
+      case OrderStatus.atDoor:
+        // En la puerta del cliente - confirmar entrega
+        return _buildConfirmDeliveryView(order, orderProvider);
       default:
         return _buildAcceptedView(order, orderProvider);
     }
@@ -765,11 +764,10 @@ class _ActiveOrderScreenState extends State<ActiveOrderScreen> {
             const SizedBox(height: 20),
 
             // Botón
-            _buildActionButton('Estoy en la puerta', () {
-              setState(() {
-                _isAtDoor = true;
-              });
-            }),
+            _buildActionButton(
+              'Estoy en la puerta',
+              () => _markAtDoor(orderProvider),
+            ),
           ],
         ),
       ),
@@ -777,7 +775,7 @@ class _ActiveOrderScreenState extends State<ActiveOrderScreen> {
   }
 
   // ============================================
-  // ESTADO: IN_TRANSIT (at_door - sin mapa)
+  // ESTADO: AT_DOOR
   // Pantalla: "Confirmar entrega"
   // ============================================
   Widget _buildConfirmDeliveryView(Order order, OrderProvider orderProvider) {
@@ -1081,6 +1079,15 @@ class _ActiveOrderScreenState extends State<ActiveOrderScreen> {
 
     setState(() => _isLoading = true);
     await orderProvider.markInTransit(token);
+    setState(() => _isLoading = false);
+  }
+
+  Future<void> _markAtDoor(OrderProvider orderProvider) async {
+    final token = context.read<AuthProvider>().token;
+    if (token == null) return;
+
+    setState(() => _isLoading = true);
+    await orderProvider.markAtDoor(token);
     setState(() => _isLoading = false);
   }
 
