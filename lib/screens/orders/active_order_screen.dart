@@ -1,4 +1,5 @@
 import 'package:bol_food_app/models/order/order.dart';
+import 'package:bol_food_app/models/order/order_item.dart';
 import 'package:bol_food_app/services/location/location_service.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -118,10 +119,11 @@ class _ActiveOrderScreenState extends State<ActiveOrderScreen> {
         // Estado inicial: Mostrar "Voy al restaurante"
         return _buildAcceptedView(order, orderProvider);
       case OrderStatus.pickingUp:
-        // En camino al restaurante: Mostrar "He llegado"
+        // Vista de confirmación de items del pedido
         return _buildGoToRestaurantView(order, orderProvider);
       case OrderStatus.pickedUp:
-        return _buildConfirmItemsView(order, orderProvider);
+        // Después de confirmar recogida, ir directamente a entregar
+        return _buildPickedUpView(order, orderProvider);
       case OrderStatus.inTransit:
         if (_isAtDoor) {
           return _buildConfirmDeliveryView(order, orderProvider);
@@ -181,7 +183,7 @@ class _ActiveOrderScreenState extends State<ActiveOrderScreen> {
 
   // ============================================
   // ESTADO: PICKING_UP
-  // Pantalla: "Dirígete al restaurant"
+  // Pantalla: "Confirma los items" (Vista de items del pedido)
   // ============================================
   Widget _buildGoToRestaurantView(Order order, OrderProvider orderProvider) {
     return SingleChildScrollView(
@@ -191,7 +193,7 @@ class _ActiveOrderScreenState extends State<ActiveOrderScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Dirígete al restaurant',
+              'Confirma los items',
               style: GoogleFonts.montserratAlternates(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -203,25 +205,187 @@ class _ActiveOrderScreenState extends State<ActiveOrderScreen> {
             _buildOrderBadge(order),
             const SizedBox(height: 16),
 
-            // Info del restaurante
-            _buildRestaurantInfoCard(order),
+            // Card contenedor de items
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Título de sección "Items del pedido"
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.delivery_dining,
+                        color: primaryYellow,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Items del pedido',
+                        style: GoogleFonts.montserratAlternates(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Lista de items
+                  ...order.orderItems.map(
+                    (item) => _buildItemRow(item),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 16),
 
-            // Mapa
-            _buildMap(
-              destinationLat: AppConstants.restaurantLatitude,
-              destinationLng: AppConstants.restaurantLongitude,
+            // Total del pedido
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF8E7),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Total del pedido',
+                        style: GoogleFonts.montserratAlternates(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      Text(
+                        '${order.totalAmount.toStringAsFixed(0)}  Bs.',
+                        style: GoogleFonts.montserratAlternates(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.info_outline,
+                        color: primaryYellow,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Deberás cobrar ${order.totalToCobrar.toStringAsFixed(2)} Bs. al cliente.',
+                          style: GoogleFonts.montserratAlternates(
+                            fontSize: 12,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 20),
 
             // Botón
             _buildActionButton(
-              'He llegado al restaurant',
+              'Confirmar Recogida',
               () => _markPickedUp(orderProvider),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  // Widget para cada item del pedido (estilo de la imagen)
+  Widget _buildItemRow(OrderItem item) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          // Imagen del producto
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: item.imageUrl != null
+                ? Image.network(
+                    item.imageUrl!,
+                    width: 80,
+                    height: 80,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return _buildItemPlaceholder();
+                    },
+                  )
+                : _buildItemPlaceholder(),
+          ),
+          const SizedBox(width: 12),
+
+          // Nombre del producto
+          Expanded(
+            child: Text(
+              item.productName,
+              style: GoogleFonts.montserratAlternates(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+
+          // Cantidad y precio
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                'x${item.quantity}',
+                style: GoogleFonts.montserratAlternates(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${item.subTotal.toStringAsFixed(0)} Bs.',
+                style: GoogleFonts.montserratAlternates(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildItemPlaceholder() {
+    return Container(
+      width: 80,
+      height: 80,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Icon(Icons.fastfood, color: Colors.grey.shade400, size: 40),
     );
   }
 
@@ -294,6 +458,117 @@ class _ActiveOrderScreenState extends State<ActiveOrderScreen> {
 
   // ============================================
   // ESTADO: PICKED_UP
+  // Pantalla: "Pedido recogido - Ir al cliente"
+  // ============================================
+  Widget _buildPickedUpView(Order order, OrderProvider orderProvider) {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '¡Pedido Recogido!',
+              style: GoogleFonts.montserratAlternates(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Order ID Badge
+            _buildOrderBadge(order),
+            const SizedBox(height: 16),
+
+            // Dirección del cliente
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Column(
+                children: [
+                  _buildInfoRow(
+                    Icons.location_on_outlined,
+                    'Dirección de entrega',
+                    order.deliveryAddress ?? 'Sin dirección',
+                  ),
+                  if (order.user != null) ...[
+                    const Divider(height: 20),
+                    _buildInfoRow(
+                      Icons.person_outline,
+                      'Cliente',
+                      order.user!.displayName,
+                    ),
+                  ],
+                  if (order.phone != null) ...[
+                    const Divider(height: 20),
+                    _buildInfoRow(
+                      Icons.phone_outlined,
+                      'Teléfono',
+                      order.phone!,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Mapa con ruta al cliente
+            _buildMap(
+              destinationLat: order.latitude ?? 0,
+              destinationLng: order.longitude ?? 0,
+            ),
+            const SizedBox(height: 16),
+
+            // Nota del cliente
+            if (order.notes != null && order.notes!.isNotEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF3E0),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Nota del cliente',
+                      style: GoogleFonts.montserratAlternates(
+                        fontSize: 12,
+                        color: Colors.orange.shade700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      order.notes!,
+                      style: GoogleFonts.montserratAlternates(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 20),
+
+            // Botón
+            _buildActionButton(
+              'Ir al cliente',
+              () => _markInTransit(orderProvider),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================
+  // ESTADO: PICKED_UP (Legacy - no usado)
   // Pantalla: "Confirma los items"
   // ============================================
   Widget _buildConfirmItemsView(Order order, OrderProvider orderProvider) {

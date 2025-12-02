@@ -60,7 +60,8 @@ class OrderService {
       );
 
       print('✅ Estado actualizado a PICKING_UP');
-      return Order.fromJson(response.data);
+      print('📱 Response data: ${response.data}');
+      return Order.fromJson(response.data['order']);
     } on DioException catch (e) {
       print('❌ Error actualizando estado: ${e.response?.data}');
       final message =
@@ -80,7 +81,8 @@ class OrderService {
       );
 
       print('✅ Estado actualizado a PICKED_UP');
-      return Order.fromJson(response.data);
+      print('📱 Response data: ${response.data}');
+      return Order.fromJson(response.data['order']);
     } on DioException catch (e) {
       print('❌ Error actualizando estado: ${e.response?.data}');
       final message =
@@ -100,7 +102,8 @@ class OrderService {
       );
 
       print('✅ Estado actualizado a IN_TRANSIT');
-      return Order.fromJson(response.data);
+      print('📱 Response data: ${response.data}');
+      return Order.fromJson(response.data['order']);
     } on DioException catch (e) {
       print('❌ Error actualizando estado: ${e.response?.data}');
       final message =
@@ -120,7 +123,8 @@ class OrderService {
       );
 
       print('✅ Estado actualizado a DELIVERED');
-      return Order.fromJson(response.data);
+      print('📱 Response data: ${response.data}');
+      return Order.fromJson(response.data['order']);
     } on DioException catch (e) {
       print('❌ Error actualizando estado: ${e.response?.data}');
       final message =
